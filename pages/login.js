@@ -110,20 +110,26 @@ export default function Login() {
       color: '#3b82f6',
       textDecoration: 'none'
     },
-    info: {
-      backgroundColor: '#dbeafe',
+    notice: {
+      backgroundColor: '#f0f9ff',
       color: '#1e40af',
       padding: '1rem',
       borderRadius: '4px',
       marginTop: '1rem',
-      fontSize: '0.875rem'
+      fontSize: '0.875rem',
+      lineHeight: '1.5'
+    },
+    noticeTitle: {
+      fontWeight: 'bold',
+      marginBottom: '0.5rem',
+      color: '#1e3a8a'
     }
   }
 
   return (
     <div style={styles.container}>
       <div style={styles.form}>
-        <h1 style={styles.title}>크레디뷰 로그인</h1>
+        <h1 style={styles.title}>크레디뷰 AI정책관리시스템</h1>
         
         {error && (
           <div style={styles.error}>
@@ -168,10 +174,12 @@ export default function Login() {
           회원가입
         </a>
 
-        <div style={styles.info}>
-          <strong>테스트 계정:</strong><br/>
-          이메일: test@company.com<br/>
-          비밀번호: test123456
+        <div style={styles.notice}>
+          <div style={styles.noticeTitle}>📋 유의사항</div>
+          <div>
+            본 시스템은 내부 정책 관리를 위한 시스템입니다.<br/>
+            정책 관련 문의사항은 <strong>디지털솔루션팀</strong>을 통해 문의해 주시기 바랍니다.
+          </div>
         </div>
       </div>
     </div>
