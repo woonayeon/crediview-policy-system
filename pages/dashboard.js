@@ -16,6 +16,14 @@ export default function Dashboard() {
   const [searchLoading, setSearchLoading] = useState(false)
   const [selectedPolicy, setSelectedPolicy] = useState(null)
   const [showModal, setShowModal] = useState(false)
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [newPolicy, setNewPolicy] = useState({
+    title: '',
+    content: '',
+    departmentOwner: '기획팀',
+    priority: 'medium'
+  })
+  const [createLoading, setCreateLoading] = useState(false)
 
   useEffect(() => {
     checkAuth()
@@ -87,7 +95,6 @@ export default function Dashboard() {
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
-      // 검색어가 없으면 원래 목록으로 복원
       loadData()
       return
     }
@@ -132,7 +139,6 @@ export default function Dashboard() {
     const token = localStorage.getItem('auth_token')
     
     try {
-      // 정책 상세 정보 로드
       const response = await fetch(`/api/policies/${policy.id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
@@ -142,20 +148,65 @@ export default function Dashboard() {
         setSelectedPolicy(data.data)
         setShowModal(true)
       } else {
-        // API가 없으면 기본 정보로 모달 표시
         setSelectedPolicy(policy)
         setShowModal(true)
       }
     } catch (error) {
-      // 오류 시에도 기본 정보 표시
       setSelectedPolicy(policy)
       setShowModal(true)
+    }
+  }
+
+  const handleCreatePolicy = async () => {
+    if (!newPolicy.title.trim() || !newPolicy.content.trim()) {
+      alert('제목과 내용을 모두 입력해주세요.')
+      return
+    }
+
+    if (newPolicy.content.length < 10) {
+      alert('내용을 10자 이상 입력해주세요.')
+      return
+    }
+
+    setCreateLoading(true)
+    const token = localStorage.getItem('auth_token')
+
+    try {
+      const response = await fetch('/api/policies', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(newPolicy)
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        alert('정책이 성공적으로 생성되었습니다!')
+        setShowCreateModal(false)
+        setNewPolicy({ title: '', content: '', departmentOwner: '기획팀', priority: 'medium' })
+        loadData() // 목록 새로고침
+      } else {
+        alert('정책 생성 실패: ' + data.message)
+      }
+    } catch (error) {
+      console.error('정책 생성 오류:', error)
+      alert('정책 생성 중 오류가 발생했습니다.')
+    } finally {
+      setCreateLoading(false)
     }
   }
 
   const closeModal = () => {
     setShowModal(false)
     setSelectedPolicy(null)
+  }
+
+  const closeCreateModal = () => {
+    setShowCreateModal(false)
+    setNewPolicy({ title: '', content: '', departmentOwner: '기획팀', priority: 'medium' })
   }
 
   const clearSearch = () => {
@@ -182,18 +233,24 @@ export default function Dashboard() {
       fontWeight: 'bold',
       color: '#1f2937'
     },
-    userInfo: {
+    headerActions: {
       display: 'flex',
       alignItems: 'center',
       gap: '1rem'
     },
-    button: {
+    createButton: {
       padding: '0.5rem 1rem',
-      backgroundColor: '#3b82f6',
+      backgroundColor: '#10b981',
       color: 'white',
       border: 'none',
       borderRadius: '4px',
-      cursor: 'pointer'
+      cursor: 'pointer',
+      fontSize: '0.875rem',
+      fontWeight: '500'
+    },
+    userInfo: {
+      fontSize: '0.875rem',
+      color: '#6b7280'
     },
     logoutButton: {
       padding: '0.5rem 1rem',
@@ -201,7 +258,8 @@ export default function Dashboard() {
       color: 'white',
       border: 'none',
       borderRadius: '4px',
-      cursor: 'pointer'
+      cursor: 'pointer',
+      fontSize: '0.875rem'
     },
     main: {
       padding: '2rem',
@@ -276,9 +334,6 @@ export default function Dashboard() {
       cursor: 'pointer',
       transition: 'background-color 0.2s ease'
     },
-    policyItemHover: {
-      backgroundColor: '#f9fafb'
-    },
     policyTitle: {
       fontWeight: '600',
       color: '#1f2937',
@@ -328,7 +383,8 @@ export default function Dashboard() {
       maxWidth: '600px',
       maxHeight: '80vh',
       overflow: 'auto',
-      margin: '1rem'
+      margin: '1rem',
+      width: '100%'
     },
     modalHeader: {
       display: 'flex',
@@ -361,6 +417,84 @@ export default function Dashboard() {
       marginBottom: '1rem',
       fontSize: '0.875rem',
       color: '#6b7280'
+    },
+    // 정책 생성 모달 스타일
+    createModal: {
+      backgroundColor: 'white',
+      borderRadius: '8px',
+      padding: '2rem',
+      maxWidth: '700px',
+      maxHeight: '90vh',
+      overflow: 'auto',
+      margin: '1rem',
+      width: '100%'
+    },
+    formGroup: {
+      marginBottom: '1rem'
+    },
+    label: {
+      display: 'block',
+      marginBottom: '0.5rem',
+      fontWeight: '500',
+      color: '#374151'
+    },
+    input: {
+      width: '100%',
+      padding: '0.75rem',
+      border: '1px solid #d1d5db',
+      borderRadius: '4px',
+      fontSize: '1rem',
+      boxSizing: 'border-box'
+    },
+    textarea: {
+      width: '100%',
+      padding: '0.75rem',
+      border: '1px solid #d1d5db',
+      borderRadius: '4px',
+      fontSize: '1rem',
+      minHeight: '200px',
+      resize: 'vertical',
+      boxSizing: 'border-box'
+    },
+    select: {
+      width: '100%',
+      padding: '0.75rem',
+      border: '1px solid #d1d5db',
+      borderRadius: '4px',
+      fontSize: '1rem',
+      boxSizing: 'border-box'
+    },
+    buttonGroup: {
+      display: 'flex',
+      gap: '1rem',
+      marginTop: '1.5rem'
+    },
+    cancelButton: {
+      flex: 1,
+      padding: '0.75rem',
+      backgroundColor: '#6b7280',
+      color: 'white',
+      border: 'none',
+      borderRadius: '4px',
+      cursor: 'pointer'
+    },
+    submitButton: {
+      flex: 1,
+      padding: '0.75rem',
+      backgroundColor: '#10b981',
+      color: 'white',
+      border: 'none',
+      borderRadius: '4px',
+      cursor: 'pointer'
+    },
+    aiNotice: {
+      backgroundColor: '#eff6ff',
+      border: '1px solid #bfdbfe',
+      borderRadius: '4px',
+      padding: '0.75rem',
+      marginTop: '0.5rem',
+      fontSize: '0.875rem',
+      color: '#1e40af'
     }
   }
 
@@ -379,8 +513,16 @@ export default function Dashboard() {
       {/* 헤더 */}
       <header style={styles.header}>
         <h1 style={styles.title}>크레디뷰 AI정책관리시스템</h1>
-        <div style={styles.userInfo}>
-          <span>{user?.name} ({user?.department})</span>
+        <div style={styles.headerActions}>
+          <button 
+            onClick={() => setShowCreateModal(true)} 
+            style={styles.createButton}
+          >
+            ➕ 새 정책 등록
+          </button>
+          <div style={styles.userInfo}>
+            {user?.name} ({user?.department})
+          </div>
           <button onClick={handleLogout} style={styles.logoutButton}>
             로그아웃
           </button>
@@ -410,9 +552,9 @@ export default function Dashboard() {
 
         {/* 검색 섹션 */}
         <div style={styles.searchSection}>
-          <h2>🔍 정책 검색</h2>
+          <h2>🤖 AI 기반 정책 검색</h2>
           <p style={{color: '#6b7280', marginBottom: '1rem'}}>
-            정책 제목이나 내용의 키워드를 입력하여 검색하세요
+            정책 제목이나 내용의 키워드를 입력하여 검색하세요. AI가 관련 정책을 찾아드립니다.
           </p>
           <div style={styles.searchContainer}>
             <input
@@ -428,7 +570,7 @@ export default function Dashboard() {
               disabled={searchLoading}
               style={styles.searchButton}
             >
-              {searchLoading ? '검색 중...' : '검색'}
+              {searchLoading ? '🔍 검색 중...' : '🔍 검색'}
             </button>
             <button onClick={clearSearch} style={styles.clearButton}>
               전체보기
@@ -503,6 +645,83 @@ export default function Dashboard() {
             
             <div style={styles.modalContent}>
               {selectedPolicy.content || '내용이 없습니다.'}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 정책 생성 모달 */}
+      {showCreateModal && (
+        <div style={styles.modalOverlay} onClick={closeCreateModal}>
+          <div style={styles.createModal} onClick={(e) => e.stopPropagation()}>
+            <div style={styles.modalHeader}>
+              <h2 style={styles.modalTitle}>🤖 AI 기반 새 정책 등록</h2>
+              <button onClick={closeCreateModal} style={styles.closeButton}>×</button>
+            </div>
+            
+            <div style={styles.formGroup}>
+              <label style={styles.label}>정책 제목 *</label>
+              <input
+                type="text"
+                value={newPolicy.title}
+                onChange={(e) => setNewPolicy({...newPolicy, title: e.target.value})}
+                placeholder="정책 제목을 입력하세요"
+                style={styles.input}
+              />
+            </div>
+
+            <div style={styles.formGroup}>
+              <label style={styles.label}>담당 부서</label>
+              <select
+                value={newPolicy.departmentOwner}
+                onChange={(e) => setNewPolicy({...newPolicy, departmentOwner: e.target.value})}
+                style={styles.select}
+              >
+                <option value="기획팀">기획팀</option>
+                <option value="운영팀">운영팀</option>
+                <option value="개발팀">개발팀</option>
+                <option value="정책관리팀">정책관리팀</option>
+                <option value="디지털솔루션팀">디지털솔루션팀</option>
+              </select>
+            </div>
+
+            <div style={styles.formGroup}>
+              <label style={styles.label}>우선순위</label>
+              <select
+                value={newPolicy.priority}
+                onChange={(e) => setNewPolicy({...newPolicy, priority: e.target.value})}
+                style={styles.select}
+              >
+                <option value="high">높음</option>
+                <option value="medium">보통</option>
+                <option value="low">낮음</option>
+              </select>
+            </div>
+
+            <div style={styles.formGroup}>
+              <label style={styles.label}>정책 내용 *</label>
+              <textarea
+                value={newPolicy.content}
+                onChange={(e) => setNewPolicy({...newPolicy, content: e.target.value})}
+                placeholder="정책 내용을 상세히 입력하세요..."
+                style={styles.textarea}
+              />
+              <div style={styles.aiNotice}>
+                💡 <strong>AI 자동 처리:</strong> 입력하신 내용을 바탕으로 AI가 자동으로 정책을 분류하고, 관련 태그를 추출하며, 요약을 생성합니다.
+              </div>
+            </div>
+
+            <div style={styles.buttonGroup}>
+              <button onClick={closeCreateModal} style={styles.cancelButton}>
+                취소
+              </button>
+              <button 
+                onClick={handleCreatePolicy}
+                disabled={createLoading || !newPolicy.title.trim() || !newPolicy.content.trim()}
+                style={styles.submitButton}
+              >
+                {createLoading ? '🤖 AI 분석 중...' : '🤖 AI로 정책 생성'}
+              </button>
             </div>
           </div>
         </div>
