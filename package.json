@@ -15,7 +15,9 @@
     "@supabase/supabase-js": "2.38.0",
     "openai": "4.20.0",
     "bcryptjs": "2.4.3",
-    "jsonwebtoken": "9.0.2"
+    "jsonwebtoken": "9.0.2",
+    "recharts": "^2.8.0",
+    "lucide-react": "^0.263.1"
   },
   "devDependencies": {
     "@types/node": "20.11.0",
