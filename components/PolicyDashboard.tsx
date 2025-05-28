@@ -1,3 +1,4 @@
+```tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -17,14 +18,13 @@ interface Policy {
   id: string;
   title: string;
   category: string;
-  department: string;
+  department_owner: string;
   status: 'active' | 'pending' | 'expired' | 'draft';
   priority: 'high' | 'medium' | 'low';
-  createdAt: string;
-  updatedAt: string;
-  createdBy: string;
-  views: number;
-  tags: string[];
+  created_at: string;
+  updated_at: string;
+  document_id: string;
+  ai_tags?: string[];
 }
 
 interface DashboardStats {
@@ -32,90 +32,112 @@ interface DashboardStats {
   activePolicies: number;
   pendingApproval: number;
   expiringSoon: number;
-  aiProcessed: number;
-  monthlyGrowth: number;
+  draftPolicies: number;
 }
 
 const PolicyDashboard = () => {
   const [stats, setStats] = useState<DashboardStats>({
-    totalPolicies: 156,
-    activePolicies: 128,
-    pendingApproval: 12,
-    expiringSoon: 8,
-    aiProcessed: 89,
-    monthlyGrowth: 15.3
+    totalPolicies: 0,
+    activePolicies: 0,
+    pendingApproval: 0,
+    expiringSoon: 0,
+    draftPolicies: 0
   });
 
-  const [policies, setPolicies] = useState<Policy[]>([
-    {
-      id: '1',
-      title: '개인정보보호 정책',
-      category: '보안정책',
-      department: '법무팀',
-      status: 'active',
-      priority: 'high',
-      createdAt: '2024-01-15',
-      updatedAt: '2024-01-20',
-      createdBy: '김법무',
-      views: 245,
-      tags: ['개인정보', '보안', '컴플라이언스']
-    },
-    {
-      id: '2',
-      title: '재택근무 가이드라인',
-      category: '인사정책',
-      department: '인사팀',
-      status: 'active',
-      priority: 'medium',
-      createdAt: '2024-01-10',
-      updatedAt: '2024-01-18',
-      createdBy: '박인사',
-      views: 189,
-      tags: ['재택근무', '인사', '업무환경']
-    },
-    {
-      id: '3',
-      title: '비용 승인 절차',
-      category: '재무정책',
-      department: '재무팀',
-      status: 'pending',
-      priority: 'high',
-      createdAt: '2024-01-22',
-      updatedAt: '2024-01-22',
-      createdBy: '최재무',
-      views: 67,
-      tags: ['비용', '승인', '절차']
-    }
-  ]);
-
-  const [selectedPeriod, setSelectedPeriod] = useState('month');
+  const [policies, setPolicies] = useState<Policy[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
 
-  // 차트 데이터
-  const categoryData = [
-    { name: '보안정책', count: 45, color: '#3B82F6' },
-    { name: '인사정책', count: 32, color: '#10B981' },
-    { name: '재무정책', count: 28, color: '#F59E0B' },
-    { name: '운영정책', count: 25, color: '#EF4444' },
-    { name: '기술정책', count: 18, color: '#8B5CF6' },
-    { name: '법무정책', count: 8, color: '#06B6D4' }
-  ];
+  // 인증 확인 및 데이터 로드
+  useEffect(() => {
+    const token = localStorage.getItem('authToken') || 
+                 localStorage.getItem('token') || 
+                 sessionStorage.getItem('authToken');
+    
+    if (!token) {
+      window.location.href = '/login';
+      return;
+    }
 
-  const monthlyData = [
-    { month: '1월', created: 12, updated: 8, views: 1250 },
-    { month: '2월', created: 15, updated: 12, views: 1450 },
-    { month: '3월', created: 18, updated: 15, views: 1680 },
-    { month: '4월', created: 22, updated: 18, views: 1920 },
-    { month: '5월', created: 25, updated: 20, views: 2100 }
-  ];
+    loadDashboardData();
+  }, []);
 
-  const departmentStats = [
-    { department: '법무팀', policies: 35, compliance: 98 },
-    { department: '인사팀', policies: 28, compliance: 95 },
-    { department: '재무팀', policies: 25, compliance: 92 },
-    { department: '운영팀', policies: 22, compliance: 88 },
-    { department: '기술팀', policies: 18, compliance: 85 }
-  ];
+  // 대시보드 데이터 로드
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('authToken') || 
+                   localStorage.getItem('token') || 
+                   sessionStorage.getItem('authToken');
+
+      // 정책 목록 조회
+      const policiesResponse = await fetch('/api/policies?limit=50', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!policiesResponse.ok) {
+        if (policiesResponse.status === 401) {
+          window.location.href = '/login';
+          return;
+        }
+        throw new Error('데이터를 불러올 수 없습니다.');
+      }
+
+      const policiesData = await policiesResponse.json();
+      const policyList = policiesData.data?.policies || [];
+      
+      setPolicies(policyList);
+      
+      // 통계 계산
+      const calculatedStats = {
+        totalPolicies: policyList.length,
+        activePolicies: policyList.filter((p: Policy) => p.status === 'active').length,
+        pendingApproval: policyList.filter((p: Policy) => p.status === 'pending').length,
+        expiringSoon: policyList.filter((p: Policy) => p.status === 'expired').length,
+        draftPolicies: policyList.filter((p: Policy) => p.status === 'draft').length
+      };
+      
+      setStats(calculatedStats);
+
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 차트 데이터 생성
+  const getCategoryData = () => {
+    const categoryCount = policies.reduce((acc: any, policy) => {
+      const category = policy.category || '미분류';
+      acc[category] = (acc[category] || 0) + 1;
+      return acc;
+    }, {});
+
+    return Object.entries(categoryCount).map(([name, count], index) => ({
+      name,
+      count,
+      color: ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'][index % 6]
+    }));
+  };
+
+  const getDepartmentData = () => {
+    const deptCount = policies.reduce((acc: any, policy) => {
+      const dept = policy.department_owner || '미지정';
+      acc[dept] = (acc[dept] || 0) + 1;
+      return acc;
+    }, {});
+
+    return Object.entries(deptCount).map(([department, policies]) => ({
+      department,
+      policies,
+      compliance: Math.floor(Math.random() * 20) + 80 // 임시 데이터
+    }));
+  };
 
   const getStatusColor = (status: Policy['status']) => {
     switch (status) {
@@ -161,6 +183,37 @@ const PolicyDashboard = () => {
     </div>
   );
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">대시보드를 불러오는 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-500 mb-4">
+            <AlertTriangle className="w-12 h-12 mx-auto" />
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">오류 발생</h3>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button
+            onClick={loadDashboardData}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            다시 시도
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* 헤더 */}
@@ -172,13 +225,25 @@ const PolicyDashboard = () => {
               <p className="text-gray-600">크레디뷰 내부 정책 통합 관리 시스템</p>
             </div>
             <div className="flex gap-3">
-              <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+              <button 
+                onClick={() => window.location.href = '/policies/new'}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              >
                 <Plus className="w-4 h-4" />
                 새 정책 등록
               </button>
+              <button 
+                onClick={() => window.location.href = '/policies'}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+              >
+                <FileText className="w-4 h-4" />
+                정책 목록
+              </button>
               <button className="p-2 text-gray-600 hover:text-gray-800 relative">
                 <Bell className="w-5 h-5" />
-                <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                {stats.pendingApproval > 0 && (
+                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                )}
               </button>
             </div>
           </div>
@@ -193,8 +258,7 @@ const PolicyDashboard = () => {
               {[
                 { id: 'overview', name: '개요', icon: Target },
                 { id: 'policies', name: '정책 목록', icon: FileText },
-                { id: 'analytics', name: '분석', icon: TrendingUp },
-                { id: 'compliance', name: '컴플라이언스', icon: Shield }
+                { id: 'analytics', name: '분석', icon: TrendingUp }
               ].map(tab => (
                 <button
                   key={tab.id}
@@ -222,29 +286,25 @@ const PolicyDashboard = () => {
                 icon={FileText}
                 title="전체 정책"
                 value={stats.totalPolicies}
-                change="+12"
                 color="blue"
               />
               <StatCard
                 icon={CheckCircle}
                 title="활성 정책"
                 value={stats.activePolicies}
-                change="+8"
                 color="green"
               />
               <StatCard
                 icon={Clock}
                 title="승인 대기"
                 value={stats.pendingApproval}
-                change="+3"
                 color="yellow"
               />
               <StatCard
                 icon={AlertTriangle}
-                title="만료 예정"
-                value={stats.expiringSoon}
-                change="-2"
-                color="red"
+                title="초안"
+                value={stats.draftPolicies}
+                color="gray"
               />
             </div>
 
@@ -253,87 +313,95 @@ const PolicyDashboard = () => {
               {/* 카테고리별 분포 */}
               <div className="bg-white rounded-lg shadow-md p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">카테고리별 정책 분포</h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={categoryData}
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={100}
-                      dataKey="count"
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    >
-                      {categoryData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
+                {getCategoryData().length > 0 ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={getCategoryData()}
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={100}
+                        dataKey="count"
+                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      >
+                        {getCategoryData().map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-64 text-gray-500">
+                    <p>표시할 데이터가 없습니다</p>
+                  </div>
+                )}
               </div>
 
-              {/* 월별 트렌드 */}
+              {/* 부서별 현황 */}
               <div className="bg-white rounded-lg shadow-md p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">월별 정책 생성 트렌드</h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <AreaChart data={monthlyData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Area
-                      type="monotone"
-                      dataKey="created"
-                      stackId="1"
-                      stroke="#3B82F6"
-                      fill="#3B82F6"
-                      name="신규 생성"
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="updated"
-                      stackId="1"
-                      stroke="#10B981"
-                      fill="#10B981"
-                      name="업데이트"
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">부서별 정책 현황</h3>
+                {getDepartmentData().length > 0 ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={getDepartmentData()}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="department" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="policies" fill="#3B82F6" name="정책 수" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-64 text-gray-500">
+                    <p>표시할 데이터가 없습니다</p>
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* 최근 활동 */}
+            {/* 최근 정책 */}
             <div className="bg-white rounded-lg shadow-md p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">최근 활동</h3>
-              <div className="space-y-4">
-                {[
-                  { action: '새 정책 생성', policy: '개인정보보호 정책', user: '김법무', time: '2시간 전', type: 'create' },
-                  { action: '정책 수정', policy: '재택근무 가이드라인', user: '박인사', time: '4시간 전', type: 'update' },
-                  { action: '정책 승인', policy: '비용 승인 절차', user: '이대표', time: '6시간 전', type: 'approve' },
-                  { action: 'AI 분석 완료', policy: '보안 정책', user: 'System', time: '8시간 전', type: 'ai' }
-                ].map((activity, index) => (
-                  <div key={index} className="flex items-center gap-4 p-3 hover:bg-gray-50 rounded-md">
-                    <div className={`p-2 rounded-full ${
-                      activity.type === 'create' ? 'bg-green-100' :
-                      activity.type === 'update' ? 'bg-blue-100' :
-                      activity.type === 'approve' ? 'bg-purple-100' :
-                      'bg-yellow-100'
-                    }`}>
-                      {activity.type === 'create' && <Plus className="w-4 h-4 text-green-600" />}
-                      {activity.type === 'update' && <Edit className="w-4 h-4 text-blue-600" />}
-                      {activity.type === 'approve' && <CheckCircle className="w-4 h-4 text-purple-600" />}
-                      {activity.type === 'ai' && <Award className="w-4 h-4 text-yellow-600" />}
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">최근 등록된 정책</h3>
+              {policies.length > 0 ? (
+                <div className="space-y-4">
+                  {policies.slice(0, 5).map((policy) => (
+                    <div key={policy.id} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-md">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3">
+                          <h4 className="font-medium text-gray-900">{policy.title}</h4>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(policy.status)}`}>
+                            {policy.status === 'active' ? '활성' :
+                             policy.status === 'pending' ? '대기' :
+                             policy.status === 'expired' ? '만료' : '초안'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
+                          <span>{policy.department_owner}</span>
+                          <span>{new Date(policy.created_at).toLocaleDateString('ko-KR')}</span>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => window.location.href = `/policies/${policy.id}`}
+                        className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                      >
+                        보기
+                      </button>
                     </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900">
-                        {activity.action}: <span className="text-blue-600">{activity.policy}</span>
-                      </p>
-                      <p className="text-xs text-gray-500">{activity.user} • {activity.time}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <FileText className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                  <p>등록된 정책이 없습니다</p>
+                  <button
+                    onClick={() => window.location.href = '/policies/new'}
+                    className="mt-3 text-blue-600 hover:text-blue-800 text-sm font-medium"
+                  >
+                    첫 번째 정책을 등록해보세요
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -341,141 +409,95 @@ const PolicyDashboard = () => {
         {/* 정책 목록 탭 */}
         {activeTab === 'policies' && (
           <div className="space-y-6">
-            {/* 검색 및 필터 */}
-            <div className="bg-white rounded-lg shadow-md p-4">
-              <div className="flex flex-col sm:flex-row gap-4">
-                <div className="flex-1">
-                  <div className="relative">
-                    <Search className="w-5 h-5 absolute left-3 top-3 text-gray-400" />
-                    <input
-                      type="text"
-                      placeholder="정책명, 내용, 태그로 검색..."
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+            <div className="bg-white rounded-lg shadow-md overflow-hidden">
+              {policies.length === 0 ? (
+                <div className="text-center py-12">
+                  <FileText className="mx-auto h-12 w-12 text-gray-400" />
+                  <h3 className="mt-2 text-sm font-medium text-gray-900">정책이 없습니다</h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    새로운 정책을 등록해보세요.
+                  </p>
+                  <div className="mt-6">
+                    <button
+                      onClick={() => window.location.href = '/policies/new'}
+                      className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      새 정책 등록
+                    </button>
                   </div>
                 </div>
-                <div className="flex gap-3">
-                  <select className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option>전체 카테고리</option>
-                    <option>보안정책</option>
-                    <option>인사정책</option>
-                    <option>재무정책</option>
-                  </select>
-                  <select className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option>전체 상태</option>
-                    <option>활성</option>
-                    <option>대기</option>
-                    <option>만료</option>
-                  </select>
-                  <button className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200">
-                    <Filter className="w-4 h-4" />
-                    필터
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* 정책 테이블 */}
-            <div className="bg-white rounded-lg shadow-md overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        정책명
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        카테고리
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        부서
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        상태
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        우선순위
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        조회수
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        등록일
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        작업
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {policies.map((policy) => (
-                      <tr key={policy.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">
-                              {policy.title}
-                            </div>
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {policy.tags.slice(0, 2).map(tag => (
-                                <span key={tag} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                                  {tag}
-                                </span>
-                              ))}
-                              {policy.tags.length > 2 && (
-                                <span className="text-xs text-gray-500">+{policy.tags.length - 2}</span>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {policy.category}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {policy.department}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(policy.status)}`}>
-                            {policy.status === 'active' ? '활성' :
-                             policy.status === 'pending' ? '대기' :
-                             policy.status === 'expired' ? '만료' : '초안'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`text-sm font-medium ${getPriorityColor(policy.priority)}`}>
-                            {policy.priority === 'high' ? '높음' :
-                             policy.priority === 'medium' ? '보통' : '낮음'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          <div className="flex items-center gap-1">
-                            <Eye className="w-4 h-4 text-gray-400" />
-                            {policy.views}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {new Date(policy.createdAt).toLocaleDateString('ko-KR')}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="flex items-center gap-2">
-                            <button className="text-blue-600 hover:text-blue-900">
-                              <Eye className="w-4 h-4" />
-                            </button>
-                            <button className="text-green-600 hover:text-green-900">
-                              <Edit className="w-4 h-4" />
-                            </button>
-                            <button className="text-gray-600 hover:text-gray-900">
-                              <Download className="w-4 h-4" />
-                            </button>
-                            <button className="text-red-600 hover:text-red-900">
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          정책명
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          상태
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          우선순위
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          부서
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          등록일
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          작업
+                        </th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {policies.slice(0, 10).map((policy) => (
+                        <tr key={policy.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div>
+                              <div className="text-sm font-medium text-gray-900">
+                                {policy.title}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {policy.document_id}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(policy.status)}`}>
+                              {policy.status === 'active' ? '활성' :
+                               policy.status === 'pending' ? '대기' :
+                               policy.status === 'expired' ? '만료' : '초안'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`text-sm font-medium ${getPriorityColor(policy.priority)}`}>
+                              {policy.priority === 'high' ? '높음' :
+                               policy.priority === 'medium' ? '보통' : '낮음'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {policy.department_owner}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {new Date(policy.created_at).toLocaleDateString('ko-KR')}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <button 
+                              onClick={() => window.location.href = `/policies/${policy.id}`}
+                              className="text-blue-600 hover:text-blue-900 mr-3"
+                            >
+                              보기
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -484,54 +506,23 @@ const PolicyDashboard = () => {
         {activeTab === 'analytics' && (
           <div className="space-y-6">
             <div className="bg-white rounded-lg shadow-md p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">부서별 정책 현황</h3>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={departmentStats}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="department" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="policies" fill="#3B82F6" name="정책 수" />
-                  <Bar dataKey="compliance" fill="#10B981" name="준수율(%)" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        )}
-
-        {/* 컴플라이언스 탭 */}
-        {activeTab === 'compliance' && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <StatCard
-                icon={Shield}
-                title="컴플라이언스 점수"
-                value="94%"
-                change="+2%"
-                color="green"
-              />
-              <StatCard
-                icon={AlertTriangle}
-                title="위험 정책"
-                value="3"
-                change="-1"
-                color="red"
-              />
-              <StatCard
-                icon={CheckCircle}
-                title="감사 통과율"
-                value="98%"
-                change="+1%"
-                color="blue"
-              />
-              <StatCard
-                icon={Clock}
-                title="검토 필요"
-                value="7"
-                change="+2"
-                color="yellow"
-              />
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">통계 요약</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-blue-600">{stats.totalPolicies}</div>
+                  <div className="text-sm text-gray-600">총 정책 수</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-green-600">
+                    {stats.totalPolicies > 0 ? Math.round((stats.activePolicies / stats.totalPolicies) * 100) : 0}%
+                  </div>
+                  <div className="text-sm text-gray-600">활성화율</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-yellow-600">{getCategoryData().length}</div>
+                  <div className="text-sm text-gray-600">정책 카테고리 수</div>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -541,3 +532,4 @@ const PolicyDashboard = () => {
 };
 
 export default PolicyDashboard;
+```
