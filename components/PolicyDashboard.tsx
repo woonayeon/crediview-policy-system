@@ -531,4 +531,3 @@ const PolicyDashboard = () => {
 };
 
 export default PolicyDashboard;
-```
