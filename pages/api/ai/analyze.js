@@ -1,5 +1,3 @@
-
-```javascript
 import jwt from 'jsonwebtoken'
 
 // 인증 미들웨어
