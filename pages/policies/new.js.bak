@@ -1,3 +1,4 @@
+```jsx
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import PolicyRegistrationForm from '../../components/PolicyRegistrationForm';
@@ -89,3 +90,4 @@ export default function NewPolicyPage() {
     </div>
   );
 }
+```

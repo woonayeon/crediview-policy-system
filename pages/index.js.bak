@@ -103,3 +103,4 @@ export default function Home() {
   // 인증된 경우 대시보드 표시
   return <PolicyDashboard />
 }
+```
