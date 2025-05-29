@@ -7,25 +7,17 @@ const nextConfig = {
   env: {
     CUSTOM_KEY: 'crediview-policy-system',
   },
-
-  // API 라우트 최적화
-  api: {
-    bodyParser: {
-      sizeLimit: '1mb',
-    },
-    responseLimit: '8mb',
-  },
-
+  
   // 이미지 최적화 (필요시)
   images: {
     domains: ['localhost'],
   },
-
-  // 실험적 기능 (성능 향상)
+  
+  // Pages Router만 사용 (App Router 완전 비활성화)
   experimental: {
-    appDir: false, // 기존 pages 라우터 사용
+    appDir: false,
   },
-
+  
   // 웹팩 설정 (OpenAI 패키지 호환성)
   webpack: (config, { isServer }) => {
     if (!isServer && config.resolve) {
@@ -38,7 +30,7 @@ const nextConfig = {
     }
     return config;
   },
-
+  
   // 보안 헤더
   async headers() {
     return [
