@@ -1,5 +1,3 @@
-
-```javascript
 import jwt from 'jsonwebtoken'
 import { policyHelpers } from '../../../lib/supabase'
 
