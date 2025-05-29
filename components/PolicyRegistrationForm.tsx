@@ -585,4 +585,3 @@ const PolicyRegistrationForm = () => {
 };
 
 export default PolicyRegistrationForm;
-```
