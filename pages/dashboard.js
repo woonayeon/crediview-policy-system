@@ -37,7 +37,7 @@ export default function Dashboard() {
   }, [])
 
   const checkAuth = async () => {
-    const token = localStorage.getItem('auth_token')
+    const token = localStorage.getItem('authToken')
     if (!token) return router.push('/login')
     const res = await fetch('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } })
     if (res.ok) {
@@ -49,14 +49,14 @@ export default function Dashboard() {
   }
 
   const loadStats = async () => {
-    const token = localStorage.getItem('auth_token')
+    const token = localStorage.getItem('authToken')
     const res = await fetch('/api/policies/stats', { headers: { Authorization: `Bearer ${token}` } })
     const data = await res.json()
     if (data.success) setStats(data.data)
   }
 
   const loadPolicies = async () => {
-    const token = localStorage.getItem('auth_token')
+    const token = localStorage.getItem('authToken')
     const res = await fetch('/api/policies', { headers: { Authorization: `Bearer ${token}` } })
     const data = await res.json()
     if (data.success) setPolicies(data.data.policies)
@@ -64,7 +64,7 @@ export default function Dashboard() {
 
   const handleSearch = async () => {
     setSearchLoading(true)
-    const token = localStorage.getItem('auth_token')
+    const token = localStorage.getItem('authToken')
     const res = await fetch('/api/policies/search', {
       method: 'POST',
       headers: {
@@ -106,7 +106,7 @@ export default function Dashboard() {
   }
 
   const handleCreate = async () => {
-    const token = localStorage.getItem('auth_token')
+    const token = localStorage.getItem('authToken')
     const res = await fetch('/api/policies', {
       method: 'POST',
       headers: {
