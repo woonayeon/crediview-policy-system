@@ -35,7 +35,7 @@ export default function Login() {
       const data = await response.json()
       
       if (data.success) {
-        localStorage.setItem('auth_token', data.token)
+        localStorage.setItem('authToken', data.token)
         router.push('/dashboard')
       } else {
         setError(data.message || '로그인에 실패했습니다.')

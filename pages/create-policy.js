@@ -20,7 +20,7 @@ export default function CreatePolicy() {
   }, [])
 
   const checkAuth = async () => {
-    const token = localStorage.getItem('auth_token')
+    const token = localStorage.getItem('authToken')
     if (!token) {
       router.push('/login')
       return
@@ -62,7 +62,7 @@ export default function CreatePolicy() {
     setError('')
 
     try {
-      const token = localStorage.getItem('auth_token')
+      const token = localStorage.getItem('authToken')
       const response = await fetch('/api/ai/preview', {
         method: 'POST',
         headers: {
@@ -112,7 +112,7 @@ export default function CreatePolicy() {
     setError('')
 
     try {
-      const token = localStorage.getItem('auth_token')
+      const token = localStorage.getItem('authToken')
       const response = await fetch('/api/policies', {
         method: 'POST',
         headers: {
