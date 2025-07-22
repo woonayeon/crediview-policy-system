@@ -8,8 +8,9 @@ import {
   Home, 
   FileText, 
   Plus, 
-  BarChart3, 
-  Settings, 
+  BarChart3,
+  Activity,
+  Settings,
   LogOut,
   Menu,
   X,
@@ -53,6 +54,12 @@ const Navigation = () => {
       href: '/analytics',
       icon: BarChart3,
       current: router.pathname === '/analytics'
+    },
+    {
+      name: 'AI 사용량',
+      href: '/usage',
+      icon: Activity,
+      current: router.pathname === '/usage'
     }
   ];
 
